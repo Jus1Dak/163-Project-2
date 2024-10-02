@@ -9,67 +9,68 @@ from item import Potion
 
 @abstractmethod
 class Character:
-    def __init__(self, player, health, temp_health, attack, defense, move: int, range: int):
-        if move and range < 1:
-            raise ValueError
-        if attack and defense < 0:
-            raise ValueError
+    def __init__(self, player):
         self.__player = player
-        self.__health = health
-        self.__temp_health = temp_health
-        self.__attack = attack
-        self.__defense = defense
-        self.__move = move
-        self.__range = range
+        self.__health = 5
+        self.__temp_health = 5
+        self.__attack = 3
+        self.__defense = 3
+        self.__move = 3
+        self.__range = 1
+        if self.__move and self.__range < 1:
+            raise ValueError
+        if self.__attack and self.__defense < 0:
+            raise ValueError
 
     @property
-    def get_player(self):
+    def player(self):
         return self.__player
 
-    @property.setter
-    def set_player(self, player):
-        self.__player = player
+    @player.setter
+    def player(self, name):
+        self.__player = name
 
     @property
-    def set_health(self):
+    def health(self) -> int:
         return self.__health
 
-    @property.setter
-    def get_health(self, health):
-        self.__health = health
+    @health.setter
+    def health(self, num: int):
+        self.__health = num
 
     @property
-    def get_temp_health(self):
+    def temp_health(self) -> int:
         return self.__temp_health
 
-    @property.setter
-    def set_temp_health(self, temp_health):
-        self.__temp_health = temp_health
+    @temp_health.setter
+    def temp_health(self, num: int):
+        self.__temp_health = num
 
-    @property.setter
-    def set_combat(self, lst: list) -> list:
+    @property
+    def combat(self) -> list:
+        return self.combat
+
+    @combat.setter
+    def combat(self, lst: list):
         if not isinstance(self.__attack, int) and not isinstance(self.__defense, int):
             if self.__attack and self.__defense < 0:
                 raise ValueError
             else:
                 raise TypeError
-        lst.extend(self.__attack, self.__defense)
-        return lst
+        lst.extend([self.__attack, self.__defense])
+        self.combat = lst
+        return self.combat
 
     @property
-    def get_combat(self):
-        return self.set_combat()
-
-    @property
-    def get_range(self):
+    def range(self) -> int:
         return self.__range
 
-    @property.setter
-    def set_range(self, range):
-        self.__range = range
+    @range.setter
+    def range(self, num):
+        self.__range = num
 
     @property
-    def get_move(self):
+    def move(self) -> int:
         if not isinstance(self.__move, int):
             if self.__move < 1:
                 raise ValueError
@@ -77,26 +78,66 @@ class Character:
                 raise TypeError
         return self.__move
 
-    @property.setter
-    def set_move(self, move):
-        if not isinstance(move, int):
-            if move < 1:
+    @move.setter
+    def move(self, num: int):
+        if not isinstance(num, int):
+            if num < 1:
                 raise ValueError
             else:
                 raise TypeError
-        self.__move = move
+        self.__move = num
 
     @abstractmethod
     def is_valid_move(self, from_coord: Coord, to_coord: Coord, board: List[List[Union[None, Character]]]) -> bool:
-        if from_coord < len(board) and to_coord < len(board[0]):
-            pass
+        if 0 <= from_coord.x < len(board) and 0 <= from_coord.y < len(board[0]): #uses x and y to check if the index of the starting position is valid
+            if 0 <= to_coord.x < len(board) and 0 <= to_coord.y < len(board[0]): #uses x and y to check if the index of the ending position is valid
+                if not from_coord.x == to_coord.x and not from_coord.y == to_coord.y: #ensures that index from from_cord and to_cord aren't the same
+                    if board[from_coord.x][from_coord.y] == self.player: #ensures that player is actively in the starting space
+                        if board[to_coord.x][to_coord.y] is None: #ensures the space were trying to move to is open
+                            return True
         else:
-            raise ValueError
-        if from_coord == to_coord:
-            raise ValueError
-        else:
-            pass
+            return False
 
+    @abstractmethod
+    def is_valid_attack(self, from_coord: Coord, to_coord: Coord, board: List[List[Union[None, Character]]]) -> bool:
+        if 0 <= from_coord.x < len(board) and 0 <= from_coord.y < len(board[0]): #uses x and y to check if the index of the starting position is valid
+            if 0 <= to_coord.x < len(board) and 0 <= to_coord.y < len(board[0]): #uses x and y to check if the index of the ending position is valid
+                if not from_coord.x == to_coord.x and not from_coord.y == to_coord.y: #ensures that index from from_cord and to_cord aren't the same
+                    if board[from_coord.x][from_coord.y] == self.player: #ensures that player is actively in the starting space
+                        if board[to_coord.x][to_coord.y] == self.player.VILLAIN or board[to_coord.x][to_coord.y] == self.player.HERO: #ensures theres a hero or villian in that space
+                            return True
+        else:
+            return False
+
+    @abstractmethod
+    def calculate_dice(self, attack=True, lst: list = [], *args, **kwargs) -> int:
+        success = 0
+        def_success = 0
+
+        if attack == True:
+            for i in range(self.combat[0] - 1):
+                lst.append(randint(1, 6))
+                for i in lst:
+                    if i >= 4:
+                        success += 1
+
+        if attack == False:
+            for i in range(self.combat[1] - 1):
+                lst.append(randint(1, 6))
+                for i in lst:
+                    if i >= 3:
+                        def_success += 1
+
+        total = success - def_success
+        return total
+
+
+
+    @abstractmethod
+    def deal_damage(self, target: Character, damage: int, *args, **kwargs) -> None:
+        damage = self.calculate_dice()
+        target.temp_health -= damage
+        print()
 
 
 
