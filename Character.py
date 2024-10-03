@@ -59,7 +59,7 @@ class Character:
                 raise TypeError
         lst.extend([self.__attack, self.__defense])
         self.combat = lst
-        return self.combat
+
 
     @property
     def range(self) -> int:
