@@ -87,25 +87,25 @@ class Character:
                 raise TypeError
         self.__move = num
 
+    def is_valid_check(self, from_coord: Coord, to_coord: Coord, board: List[List[Union[None, Character]]]) -> bool:
+        if 0 <= from_coord.x < len(board) and 0 <= from_coord.y < len(board[0]) and 0 <= to_coord.x < len(board) and 0 <= to_coord.y < len(board[0]): #checks to make sure indexs we are in the proper range
+            if not from_coord.x == to_coord.x and not from_coord.y == to_coord.y:  # ensures that index from from_cord and to_cord aren't the same
+                if board[from_coord.x][from_coord.y] == self.player and board[to_coord.x][to_coord.y] is None: #ensures player is in the starting cord and ending cord is empty
+                    return True
+        else:
+            return False
+
     @abstractmethod
     def is_valid_move(self, from_coord: Coord, to_coord: Coord, board: List[List[Union[None, Character]]]) -> bool:
-        if 0 <= from_coord.x < len(board) and 0 <= from_coord.y < len(board[0]): #uses x and y to check if the index of the starting position is valid
-            if 0 <= to_coord.x < len(board) and 0 <= to_coord.y < len(board[0]): #uses x and y to check if the index of the ending position is valid
-                if not from_coord.x == to_coord.x and not from_coord.y == to_coord.y: #ensures that index from from_cord and to_cord aren't the same
-                    if board[from_coord.x][from_coord.y] == self.player: #ensures that player is actively in the starting space
-                        if board[to_coord.x][to_coord.y] is None: #ensures the space were trying to move to is open
-                            return True
+        if self.is_valid_check:
+            return True
         else:
             return False
 
     @abstractmethod
     def is_valid_attack(self, from_coord: Coord, to_coord: Coord, board: List[List[Union[None, Character]]]) -> bool:
-        if 0 <= from_coord.x < len(board) and 0 <= from_coord.y < len(board[0]): #uses x and y to check if the index of the starting position is valid
-            if 0 <= to_coord.x < len(board) and 0 <= to_coord.y < len(board[0]): #uses x and y to check if the index of the ending position is valid
-                if not from_coord.x == to_coord.x and not from_coord.y == to_coord.y: #ensures that index from from_cord and to_cord aren't the same
-                    if board[from_coord.x][from_coord.y] == self.player: #ensures that player is actively in the starting space
-                        if board[to_coord.x][to_coord.y] == self.player.VILLAIN or board[to_coord.x][to_coord.y] == self.player.HERO: #ensures theres a hero or villian in that space
-                            return True
+        if self.is_valid_check:
+                return True
         else:
             return False
 
@@ -137,7 +137,7 @@ class Character:
     def deal_damage(self, target: Character, damage: int, *args, **kwargs) -> None:
         damage = self.calculate_dice()
         target.temp_health -= damage
-        print()
+        print(f"{target} was dealt {damage} damage")
 
 
 
