@@ -140,6 +140,12 @@ class Character:
         print(f"{target} was dealt {damage} damage")
 
 
+    @abstractmethod
+    def __str__(self) -> str:
+        return Character.__name__
+
+
+
 
 class CharacterDeath(Exception):
 
