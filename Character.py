@@ -98,14 +98,16 @@ class Character:
     @abstractmethod
     def is_valid_move(self, from_coord: Coord, to_coord: Coord, board: List[List[Union[None, Character]]]) -> bool:
         if self.is_valid_check:
-            return True
+            if board[from_coord.x][from_coord.y] == self.player and board[to_coord.x][to_coord.y] is None:  # ensures player is in the starting cord and ending cord is empty
+                return True
         else:
             return False
 
     @abstractmethod
     def is_valid_attack(self, from_coord: Coord, to_coord: Coord, board: List[List[Union[None, Character]]]) -> bool:
         if self.is_valid_check:
-                return True
+                if board[from_coord.x][from_coord.y] == self.player and board[to_coord.x][to_coord.y] is not None: #ensures player is in the starting cord and ending cord is empty
+                    return True
         else:
             return False
 
