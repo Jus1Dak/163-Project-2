@@ -1,0 +1,472 @@
+import unittest
+from character import *
+from dungeon import *
+from creatures import *
+from coord import Coord
+
+
+class Randy(Character):
+    #sets up a character that I can test within classes
+    def __init__(self, player: Player):
+        super().__init__(player)
+
+    def is_valid_move(self, from_coord, to_coord, board):
+        return super().is_valid_move(from_coord, to_coord, board)
+
+    def is_valid_attack(self, from_coord, to_coord, board):
+        return super().is_valid_attack(from_coord, to_coord, board)
+
+    def calculate_dice(self, attack=True, lst=[], *args, **kwargs):
+        return super().calculate_dice(attack, lst, *args, **kwargs)
+
+    def deal_damage(self, target, damage, *args, **kwargs):
+        return super().deal_damage(target, damage, *args, **kwargs)
+
+    def __str__(self):
+        return "Randy"
+
+
+class TestCreatures(unittest.TestCase):
+
+    def setUp(self):
+        # Set up a basic board for testing
+        self.board = [[None for _ in range(5)] for _ in range(5)]
+        self.warrior = Warrior()
+        self.mage = Mage()
+        self.paladin = Paladin()
+        self.ranger = Ranger()
+        self.goblin = Goblin()
+        self.skeleton = Skeleton()
+        self.necromancer = Necromancer()
+
+    def test_villain_movement(self):
+        # Test Villain move
+        villain = Goblin()
+        from_coord = Coord(0, 0)
+        self.assertTrue(villain.is_valid_move(from_coord, Coord(0, 1), self.board))
+        self.assertFalse(villain.is_valid_move(from_coord, Coord(1, 1), self.board))
+
+    def test_goblin_move_obstacle(self):
+        # Test Goblin trying to move past an obstacle
+        from_coord = Coord(0, 0)
+        to_coord = Coord(0, 2)
+        self.board[0][1] = self.warrior  # Obstacle in path
+        self.assertFalse(self.goblin.is_valid_move(from_coord, to_coord, self.board),
+                         "This way is blocked")
+
+    def test_hero_movement(self):
+        # Test Hero move validations
+        from_coord = Coord(0, 0)
+        self.assertTrue(self.warrior.is_valid_move(from_coord, Coord(1, 0), self.board))
+        self.assertFalse(self.mage.is_valid_move(from_coord, Coord(3, 0), self.board))
+
+    def test_paladin_heal_property(self):
+        # Test Paladin heal property
+        self.assertTrue(self.paladin.heal)
+        self.paladin.heal = False
+        self.assertFalse(self.paladin.heal)
+
+    def test_paladin_revive(self):
+        from_coord = Coord(0, 0)
+        to_coord = Coord(0, 1)
+        self.paladin.revive(self.warrior, from_coord, to_coord, self.board)
+        self.assertEqual(self.warrior.temp_health, self.warrior.health // 2)
+
+    def test_necromancer_raise_dead(self):
+        from_coord = Coord(0, 0)
+        to_coord = Coord(0, 1)
+        self.warrior.temp_health = 0
+        self.necromancer.raise_dead(self.warrior, from_coord, to_coord, self.board)
+        self.assertEqual(self.warrior.player, Player.VILLAIN)
+        self.assertEqual(self.warrior.temp_health, self.warrior.health // 2)
+
+    def test_warrior_calculate_dice(self):
+        result = self.warrior.calculate_dice(self.goblin, True, [], [])
+        self.assertIsInstance(result, int)
+
+    def test_deal_damage_ranger_skeleton(self):
+        # Test Rangers damage
+        target = Skeleton()
+        initial_health = target.temp_health
+        self.ranger.deal_damage(target, damage=2)
+        self.assertEqual(target.temp_health, initial_health - 1)
+
+    def test_mage_deal_damage(self):
+        starting_health = self.goblin.temp_health
+        self.mage.deal_damage(self.goblin, 1)
+        self.assertTrue(self.goblin.temp_health < starting_health)
+
+    def test_ranger_deal_damage(self):
+        starting_health = self.skeleton.temp_health
+        self.ranger.deal_damage(self.skeleton, 2)
+        self.assertTrue(self.skeleton.temp_health < starting_health)
+
+    def test_is_valid_attack_villain(self):
+        # Test Villain attack
+        villain = Goblin()
+        from_coord = Coord(0, 0)
+        to_coord = Coord(0, 1)
+        self.assertTrue(villain.is_valid_attack(from_coord, to_coord, self.board), "Valid attack")
+
+    def test_is_valid_attack_hero(self):
+        # Test Hero attack
+        from_coord = Coord(0, 0)
+        to_coord = Coord(0, 3)
+        self.assertTrue(self.mage.is_valid_attack(from_coord, to_coord, self.board), "Valid ranged attack within range")
+        self.assertFalse(self.warrior.is_valid_attack(from_coord, Coord(0, 4), self.board), "Out of range attack")
+
+    def test_mage_damage(self):
+        # Test mage damage
+        target = Goblin()
+        initial_health = target.temp_health
+        self.mage.deal_damage(target, damage=3)
+        self.assertEqual(target.temp_health, initial_health - 4)
+
+
+    def test_paladin_heal_restriction(self):
+        # Test Paladin invalid types
+        with self.assertRaises(TypeError):
+            self.paladin.heal = str
+            self.paladin.heal = int
+            self.paladin.heal = float
+            self.paladin.heal = list
+
+
+    def test_skeleton_move(self):
+        from_coord = Coord(0, 0)
+        to_coord = Coord(2, 0)
+        self.skeleton.move = 2
+        self.assertTrue(self.skeleton.is_valid_move(from_coord, to_coord, self.board))
+
+    def test_skeleton_invalid_move(self):
+        from_coord = Coord(0, 0)
+        to_coord = Coord(3, 0)
+        self.skeleton.move = 2
+        self.assertFalse(self.skeleton.is_valid_move(from_coord, to_coord, self.board))
+
+    def test_hero_attack(self):
+        from_coord = Coord(2, 0)
+        to_coord = Coord(2, 0)
+        self.assertTrue(self.warrior.is_valid_attack(from_coord, to_coord, self.board))
+
+    def test_invalid_hero_attack(self):
+        from_coord = Coord(1, 1)
+        to_coord = Coord(2, 3)
+        self.assertFalse(self.warrior.is_valid_attack(from_coord, to_coord, self.board))
+
+    def test_calculate_dice_warrior_goblin(self):
+        dice_result = self.warrior.calculate_dice(target=self.goblin, attack=True, lst=[], gob=[])
+        self.assertTrue(dice_result >= 0)
+
+    def test_calculate_dice_warrior_non_goblin(self):
+        dice_result = self.warrior.calculate_dice(target=self.skeleton, attack=True, lst=[], gob=[])
+        self.assertTrue(dice_result >= 0)
+
+    def test_warrior_deal_damage(self):
+        starting_health = self.goblin.temp_health
+        self.warrior.deal_damage(self.goblin, 2)
+        self.assertTrue(self.goblin.temp_health < starting_health)
+
+    def test_villain_super_method_override(self):
+        self.assertEqual(str(self.villain), "Villain")
+        self.assertEqual(str(self.goblin), "Goblin")
+        self.assertEqual(str(self.skeleton), "Skeleton")
+        self.assertEqual(str(self.necromancer), "Necromancer")
+
+    def test_necromancer_valid_move(self):
+        from_coord = Coord(3, 0)
+        to_coord = Coord(3, 2)
+        self.necromancer.move = 2
+        self.assertTrue(self.necromancer.is_valid_move(from_coord, to_coord, self.board))
+
+    def test_necromancer_invalid_move(self):
+        from_coord = Coord(3, 0)
+        to_coord = Coord(5, 0)
+        self.necromancer.move = 2
+        self.assertFalse(self.necromancer.is_valid_move(from_coord, to_coord, self.board))
+
+    def test_ranger_valid_move(self):
+        from_coord = Coord(0, 0)
+        to_coord = Coord(0, 2)
+        self.ranger.move = 3
+        self.assertTrue(self.ranger.is_valid_move(from_coord, to_coord, self.board))
+
+    def test_ranger_invalid_move(self):
+        from_coord = Coord(0, 0)
+        to_coord = Coord(0, 4)
+        self.ranger.move = 3
+        self.assertFalse(self.ranger.is_valid_move(from_coord, to_coord, self.board))
+
+    def test_mage_valid_move(self):
+        from_coord = Coord(1, 1)
+        to_coord = Coord(2, 3)
+        self.mage.move = 3
+        self.assertTrue(self.mage.is_valid_move(from_coord, to_coord, self.board))
+
+    def test_mage_invalid_move(self):
+        from_coord = Coord(1, 1)
+        to_coord = Coord(5, 5)
+        self.mage.move = 2
+        self.assertFalse(self.mage.is_valid_move(from_coord, to_coord, self.board))
+
+
+class TestCharacters(unittest.TestCase):
+    def setUp(self):
+        self.character = Randy(Player.HERO)
+        self.target = Randy(Player.VILLAIN)
+        self.board = [[None for _ in range(5)] for _ in range(5)]
+        self.from_coord = Coord(0, 0)
+        self.to_coord = Coord(1, 1)
+
+    def test_initial_properties(self):
+        # Test initial props
+        self.assertEqual(self.character.health, 5)
+        self.assertEqual(self.character.temp_health, 5)
+        self.assertEqual(self.character.combat, [3, 3])
+        self.assertEqual(self.character.move, 3)
+        self.assertEqual(self.character.range, 1)
+        self.assertEqual(self.character.player, Player.HERO)
+
+
+
+    def test_property_setters_and_getters(self):
+        # Test setting health and combat values
+        self.character.health = 8
+        self.assertEqual(self.character.health, 8)
+
+        self.character.temp_health = 7
+        self.assertEqual(self.character.temp_health, 7)
+
+        self.character.combat = [4, 5]
+        self.assertEqual(self.character.combat, [4, 5])
+
+        self.character.move = 4
+        self.assertEqual(self.character.move, 4)
+
+        self.character.range = 2
+        self.assertEqual(self.character.range, 2)
+
+    def test_invalid_health_and_temp_health(self):
+        # Test invalid assignments for health and temp_health
+        with self.assertRaises(TypeError):
+            self.character.health = "invalid"
+        with self.assertRaises(ValueError):
+            self.character.health = -5
+
+        with self.assertRaises(TypeError):
+            self.character.temp_health = "invalid"
+        with self.assertRaises(CharacterDeath):
+            self.character.temp_health = -1
+
+    def test_invalid_combat_values(self):
+        # Test invalid assignments for combat values
+        with self.assertRaises(TypeError):
+            self.character.combat = "invalid"
+        with self.assertRaises(ValueError):
+            self.character.combat = [-1, -2]
+
+    def test_invalid_move_and_range(self):
+        # Test invalid assignments for move and range
+        with self.assertRaises(TypeError):
+            self.character.move = "invalid"
+        with self.assertRaises(ValueError):
+            self.character.move = -1
+
+        with self.assertRaises(TypeError):
+            self.character.range = "invalid"
+        with self.assertRaises(ValueError):
+            self.character.range = -1
+
+    def test_valid_move(self):
+        self.board[0][0] = self.character
+        self.assertTrue(self.character.is_valid_move(self.from_coord, self.to_coord, self.board))
+
+    def test_invalid_move(self):
+        # Test invalid move conditions
+        self.assertFalse(self.character.is_valid_move(Coord(-1, -1), self.to_coord, self.board))
+        self.assertFalse(self.character.is_valid_move(self.from_coord, self.from_coord, self.board))
+        self.assertFalse(self.character.is_valid_move(self.from_coord, Coord(7, 7), self.board))
+        self.assertFalse(self.character.is_valid_move(Coord(0, 0), Coord(0, 0), self.board))
+        self.assertFalse(self.character.is_valid_move(self.to_coord, self.to_coord, self.board))
+
+    def test_valid_attack(self):
+        # Setting up a valid attack
+        self.board[0][0] = self.character
+        self.board[1][1] = self.target
+        self.assertTrue(self.character.is_valid_attack(self.from_coord, self.to_coord, self.board))
+
+    def test_invalid_attack(self):
+        # Test invalid attack conditions
+        self.board[0][0] = self.character
+        self.assertFalse(self.character.is_valid_attack(Coord(-1, -1), self.to_coord, self.board))
+        self.assertFalse(self.character.is_valid_attack(self.from_coord, self.from_coord, self.board))
+        self.assertFalse(self.character.is_valid_attack(self.from_coord, Coord(5, 5), self.board))
+
+    def test_calculate_dice(self):
+        # Test dice calculation for attack
+        attack_result = self.character.calculate_dice(attack=True)
+        self.assertIsInstance(attack_result, int)
+
+        # Test dice calculation for defense
+        defense_result = self.character.calculate_dice(attack=False)
+        self.assertIsInstance(defense_result, int)
+
+    def test_deal_damage_successful(self):
+        # Test dealing damage successfully
+        self.target.temp_health = 4
+        damage = 3
+        self.character.deal_damage(self.target, damage)
+        self.assertEqual(self.target.temp_health, 1)
+
+    def test_deal_damage_causes_death(self):
+        # Test dealing fatal damage
+        with self.assertRaises(CharacterDeath):
+            self.character.deal_damage(self.target, 6)
+
+    def test_deal_damage_invalid_type(self):
+        # Test dealing damage with invalid type
+        with self.assertRaises(TypeError):
+            self.character.deal_damage(self.target, "Hello")
+
+
+class TestDungeon(unittest.TestCase):
+
+    def setUp(self):
+        self.dungeon = Dungeon(6, 6, [Skeleton(), Goblin(), Necromancer()])  # Create a dungeon with a height and width of 6
+
+    def test_height_property(self):
+        self.assertEqual(self.dungeon.height, 8)
+
+    def test_width_property(self):
+        self.assertEqual(self.dungeon.width, 8)
+
+    def test_board_property(self):
+        board = self.dungeon.board
+        self.assertEqual(len(board), 8)
+        self.assertEqual(len(board[0]), 8)
+
+    def test_board_setter(self):
+        self.dungeon.board = [6, 6]
+        self.assertEqual(self.dungeon.width, 6)
+        self.assertEqual(self.dungeon.height, 6)
+        self.assertEqual(len(self.dungeon.board), 6)
+        self.assertEqual(len(self.dungeon.board[0]), 6)
+        with self.assertRaises(TypeError):
+            self.dungeon.board = "hello"
+        with self.assertRaises(ValueError):
+            self.dungeon.board = [2, 4]
+
+    def test_player_property(self):
+        self.assertEqual(self.dungeon.player, Player.HERO)
+
+    def test_heroes_property(self):
+        self.assertEqual(len(self.dungeon.heroes), 4)
+        with self.assertRaises(TypeError):
+            self.dungeon.heroes = "hello"
+
+    def test_heroes_setter(self):
+        self.dungeon.heroes = [Paladin(), Ranger()]
+        self.assertEqual(len(self.dungeon.heroes), 2)
+        with self.assertRaises(TypeError):
+            self.dungeon.heroes = "hello"
+
+    def test_villains_property(self):
+        self.assertTrue(self.dungeon.villains)
+        with self.assertRaises(TypeError):
+            self.dungeon.villains = "hello"
+
+    def test_villains_setter(self):
+        new_villains = [Skeleton(), Goblin()]
+        self.dungeon.villains = new_villains
+        self.assertEqual(len(self.dungeon.villains), 2)
+        with self.assertRaises(TypeError):
+            self.dungeon.villains = "hello"
+
+    def test_initialization_valid(self):
+        self.assertEqual(self.dungeon.height, 6)
+        self.assertEqual(self.dungeon.width, 6)
+        self.assertIsInstance(self.dungeon.villains, list)
+        self.assertEqual(len(self.dungeon.villains), 1)  # Default generated villains
+
+    def test_initialization_invalid_height(self):
+        with self.assertRaises(ValueError):
+            Dungeon(3, 6)  # Height less than 4
+        with self.assertRaises(ValueError):
+            Dungeon(13, 6)  # Height greater than 12
+
+    def test_initialization_invalid_width(self):
+        with self.assertRaises(ValueError):
+            Dungeon(6, 3)  # Width less than 4
+        with self.assertRaises(ValueError):
+            Dungeon(6, 13)  # Width greater than 12
+
+    def test_set_board(self):
+        self.dungeon.board = [8, 8]
+        self.assertEqual(self.dungeon.height, 8)
+        self.assertEqual(self.dungeon.width, 8)
+
+    def test_set_board_invalid(self):
+        with self.assertRaises(ValueError):
+            self.dungeon.board = [3, 6]  # Invalid width
+        with self.assertRaises(ValueError):
+            self.dungeon.board = [6, 3]  # Invalid height
+
+    def test_is_valid_move(self):
+        valid_coord = [Coord(0, 0)]
+        invalid_coord = [Coord(6, 6)]  # Out of bounds
+        self.assertTrue(self.dungeon.is_valid_move(valid_coord))
+        self.assertFalse(self.dungeon.is_valid_move(invalid_coord))
+
+    def test_character_at(self):
+        warrior = Warrior()
+        self.dungeon.set_character_at(warrior, 0, 0)
+        self.assertIs(self.dungeon.character_at(0, 0), warrior)
+
+    def test_move(self):
+        warrior = Warrior()
+        self.dungeon.set_character_at(warrior, 0, 0)
+        self.dungeon.move(Coord(0, 0), Coord(1, 1))
+        self.assertIs(self.dungeon.character_at(1, 1), warrior)
+        self.assertIsNone(self.dungeon.character_at(0, 0))
+
+    def test_attack(self):
+        warrior = Warrior()
+        goblin = Goblin()
+        self.dungeon.set_character_at(warrior, 0, 0)
+        self.dungeon.set_character_at(goblin, 1, 1)
+
+        # Simulate an attack
+        self.dungeon.attack(Coord(0, 0), Coord(1, 1))
+        self.assertTrue(goblin.temp_health < goblin.health)
+
+    def test_place_heroes(self):
+        self.dungeon.place_heroes()
+        #places heros
+        for hero in self.dungeon.heroes: #ensures that the heros position isn't none
+            self.assertIsNotNone(self.dungeon.character_at(hero.position.x, hero.position.y))
+
+
+    def test_is_dungeon_clear(self):
+        self.assertFalse(self.dungeon.is_dungeon_clear())
+        # Assuming you can remove villains to check the method
+        for villain in self.dungeon.villains:
+            villain.temp_health = 0  # Set villain health to 0
+        self.assertTrue(self.dungeon.is_dungeon_clear())
+
+
+    def test_is_dungeon_not_clear(self):
+        #itterates through dungeon villians looking at health
+        for villian in self.dungeon.villains:
+            villian.temp_health = 2 #ensure villians are alive
+        self.assertFalse(self.dungeon.is_dungeon_clear())
+
+    def test_adventurer_defeat(self):
+        self.assertFalse(self.dungeon.adventurer_defeat())
+        # Assuming you can remove heroes to check the method
+        for hero in self.dungeon.heroes:
+            hero.temp_health = 0  # Set hero health to 0
+        self.assertTrue(self.dungeon.adventurer_defeat())
+
+
+if __name__ == '__main__':
+    unittest.main()
